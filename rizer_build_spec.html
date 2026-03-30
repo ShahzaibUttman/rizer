@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIZER — New Workspace Build Spec</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #111318;
+    --bg3: #181c23;
+    --border: #1e2330;
+    --border2: #2a3045;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --dim: #334155;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #8b5cf6;
+    --pink: #ec4899;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .header-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 65px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 65px;
+    height: calc(100vh - 65px);
+    overflow-y: auto;
+  }
+
+  .nav-section {
+    margin-bottom: 8px;
+  }
+
+  .nav-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 12px 20px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    text-decoration: none;
+  }
+
+  .nav-item:hover { color: var(--text); background: var(--bg2); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(59,130,246,0.06); }
+
+  .nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* MAIN */
+  .main {
+    padding: 40px 48px;
+    max-width: 900px;
+  }
+
+  /* PHASE HEADER */
+  .phase-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .phase-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .phase-title {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .phase-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 48px;
+    scroll-margin-top: 80px;
+  }
+
+  .section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* BOARD CARD */
+  .board-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .board-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .board-card-header:hover { background: var(--bg3); }
+
+  .board-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .board-id {
+    font-size: 10px;
+    color: var(--dim);
+    font-weight: 400;
+  }
+
+  .board-card-body {
+    padding: 18px;
+  }
+
+  /* TABLE */
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .spec-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--dim);
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+
+  .spec-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-table tr:hover td { background: var(--bg3); }
+
+  /* TAGS */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .tag-keep { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.2); }
+  .tag-remove { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+  .tag-new { background: rgba(59,130,246,0.12); color: #3b82f6; border: 1px solid rgba(59,130,246,0.2); }
+  .tag-native { background: rgba(139,92,246,0.12); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.2); }
+  .tag-make { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
+  .tag-required { background: rgba(236,72,153,0.12); color: #ec4899; border: 1px solid rgba(236,72,153,0.2); }
+  .tag-optional { background: rgba(100,116,139,0.1); color: #64748b; border: 1px solid rgba(100,116,139,0.2); }
+  .tag-path-a { background: rgba(6,182,212,0.12); color: #06b6d4; border: 1px solid rgba(6,182,212,0.2); }
+  .tag-path-b { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.8;
+    margin: 10px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .code-block .kw { color: var(--accent); }
+  .code-block .val { color: var(--green); }
+  .code-block .cmt { color: var(--dim); font-style: italic; }
+  .code-block .warn { color: var(--amber); }
+
+  /* ALERT */
+  .alert {
+    padding: 12px 16px;
+    border-left: 3px solid;
+    margin: 12px 0;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .alert-warn { border-color: var(--amber); background: rgba(245,158,11,0.06); color: #fbbf24; }
+  .alert-info { border-color: var(--accent); background: rgba(59,130,246,0.06); color: #93c5fd; }
+  .alert-success { border-color: var(--green); background: rgba(16,185,129,0.06); color: #6ee7b7; }
+  .alert-danger { border-color: var(--red); background: rgba(239,68,68,0.06); color: #fca5a5; }
+
+  /* BUILD ORDER */
+  .build-steps {
+    counter-reset: steps;
+  }
+
+  .build-step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--bg);
+    background: var(--accent);
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .step-content { flex: 1; }
+  .step-title { font-weight: 500; color: var(--text); font-size: 13px; margin-bottom: 3px; }
+  .step-desc { color: var(--muted); font-size: 12px; }
+
+  .step-num.done { background: var(--green); }
+  .step-num.pending { background: var(--dim); }
+
+  /* SCENARIO TABLE */
+  .scenario-row-keep td:first-child { border-left: 2px solid var(--green); }
+  .scenario-row-remove td:first-child { border-left: 2px solid var(--red); }
+  .scenario-row-replace td:first-child { border-left: 2px solid var(--purple); }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* INLINE CODE */
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    color: var(--accent2);
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* TOGGLE */
+  .collapsible { display: block; }
+
+  .toggle-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    padding: 0;
+    letter-spacing: 0.5px;
+  }
+
+  .toggle-btn:hover { color: var(--text); }
+
+  /* URL BOX */
+  .url-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    margin: 6px 0;
+  }
+
+  .url-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 80px;
+  }
+
+  .url-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    flex: 1;
+  }
+
+  p { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  h4 { font-size: 13px; font-weight: 500; color: var(--text); margin: 16px 0 8px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">RIZER<span>.</span></div>
+    <div class="badge">Build Spec v1.0</div>
+  </div>
+  <div class="header-meta">New Workspace — Full Build · Mar 26 2026</div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <a class="nav-item active" href="#build-order">
+        <span class="nav-dot" style="background:#3b82f6"></span>Build order
+      </a>
+      <a class="nav-item" href="#board-map">
+        <span class="nav-dot" style="background:#3b82f6"></span>Board map
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Form</div>
+      <a class="nav-item" href="#workform">
+        <span class="nav-dot" style="background:#06b6d4"></span>WorkForm structure
+      </a>
+      <a class="nav-item" href="#path-a">
+        <span class="nav-dot" style="background:#06b6d4"></span>Path A — stocked
+      </a>
+      <a class="nav-item" href="#path-b">
+        <span class="nav-dot" style="background:#f59e0b"></span>Path B — special
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Boards</div>
+      <a class="nav-item" href="#procurement-board">
+        <span class="nav-dot" style="background:#8b5cf6"></span>Procurement Requests
+      </a>
+      <a class="nav-item" href="#maintenance-board">
+        <span class="nav-dot" style="background:#10b981"></span>Maintenance Orders
+      </a>
+      <a class="nav-item" href="#construction-board">
+        <span class="nav-dot" style="background:#10b981"></span>Construction Orders
+      </a>
+      <a class="nav-item" href="#inventory-board">
+        <span class="nav-dot" style="background:#ec4899"></span>Inventory
+      </a>
+      <a class="nav-item" href="#report-boards">
+        <span class="nav-dot" style="background:#f59e0b"></span>Report Boards
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Automation</div>
+      <a class="nav-item" href="#native-autos">
+        <span class="nav-dot" style="background:#8b5cf6"></span>Native automations
+      </a>
+      <a class="nav-item" href="#workflows">
+        <span class="nav-dot" style="background:#8b5cf6"></span>Enterprise Workflows
+      </a>
+      <a class="nav-item" href="#make-scenarios">
+        <span class="nav-dot" style="background:#f59e0b"></span>Make.com scenarios
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Delivery</div>
+      <a class="nav-item" href="#office-urls">
+        <span class="nav-dot" style="background:#10b981"></span>Office URLs
+      </a>
+      <a class="nav-item" href="#acceptance">
+        <span class="nav-dot" style="background:#10b981"></span>Acceptance criteria
+      </a>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- BUILD ORDER -->
+    <div class="section" id="build-order">
+      <div class="phase-header">
+        <div class="phase-number">DOC-01</div>
+        <div>
+          <div class="phase-title">RIZER Procurement & Inventory — New Workspace Build</div>
+          <div class="phase-sub">Complete ground-up rebuild. Follow build order exactly. Do not build on live account.</div>
+        </div>
+      </div>
+
+      <div class="section-title">Build order</div>
+
+      <div class="build-steps">
+        <div class="build-step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Create new CarbonWeb dev workspace</div>
+            <div class="step-desc">All build and testing happens here. Live account stays untouched until final migration.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Build Inventory board</div>
+            <div class="step-desc">Foundation board — all other boards reference it. Build columns and structure first.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Build Procurement Requests board + WorkForm</div>
+            <div class="step-desc">Parent board with subitem structure. Build Path A and Path B form logic.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Build Maintenance Orders board</div>
+            <div class="step-desc">Add columns, groups, single-direction automations only. No status↔group loops.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Build Construction Orders board</div>
+            <div class="step-desc">Same structure as Maintenance. Add property/building column.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-title">Build Direct Ship board</div>
+            <div class="step-desc">Simpler board — no inventory deduction. Connect to Procurement.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">7</div>
+          <div class="step-content">
+            <div class="step-title">Build Maintenance Order Report board</div>
+            <div class="step-desc">Report board populated by single automation trigger only.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">8</div>
+          <div class="step-content">
+            <div class="step-title">Build Construction Order Report board</div>
+            <div class="step-desc">Same pattern as Maintenance Report.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">9</div>
+          <div class="step-content">
+            <div class="step-title">Build Enterprise Workflows (1174, 1192, 1234 replacements)</div>
+            <div class="step-desc">Build native workflows after all boards exist. They reference cross-board connections.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">10</div>
+          <div class="step-content">
+            <div class="step-title">Build Make.com scenario 1230 with idempotency check</div>
+            <div class="step-desc">Inventory math scenario — only scenario staying in Make.com. Add data store guard first.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">11</div>
+          <div class="step-content">
+            <div class="step-title">Build Returns workflow</div>
+            <div class="step-desc">Permission-gated. Reverses inventory deduction, flags accounting, logs audit trail.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">12</div>
+          <div class="step-content">
+            <div class="step-title">Generate office-prefilled form URLs</div>
+            <div class="step-desc">One form, UTM-prefilled per Nebraska office. Document in mondayDoc.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">13</div>
+          <div class="step-content">
+            <div class="step-title">End-to-end test in dev</div>
+            <div class="step-desc">Submit form → triage → inventory deduction → report. Verify single deduction, single report row, single notification.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num">14</div>
+          <div class="step-content">
+            <div class="step-title">Migrate to live</div>
+            <div class="step-desc">Only after full dev validation. Reconcile inventory counts with Audrey before go-live.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOARD MAP -->
+    <div class="section" id="board-map">
+      <div class="section-title">Board map</div>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Board</th>
+            <th>Purpose</th>
+            <th>Feeds into</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>Procurement Requests</code></td><td>All employee requests via WorkForm</td><td>Maintenance Orders, Construction Orders, Direct Ship</td></tr>
+          <tr><td><code>Inventory</code></td><td>Master stock list with quantities and costs</td><td>Procurement (linked), all order boards</td></tr>
+          <tr><td><code>Maintenance Orders</code></td><td>Maintenance category orders</td><td>Maintenance Order Report</td></tr>
+          <tr><td><code>Construction Orders</code></td><td>Construction category orders</td><td>Construction Order Report</td></tr>
+          <tr><td><code>Direct Ship</code></td><td>Direct ship orders, no inventory deduction</td><td>Standalone</td></tr>
+          <tr><td><code>Maintenance Order Report</code></td><td>Accounting report for maintenance</td><td>Accounting export</td></tr>
+          <tr><td><code>Construction Order Report</code></td><td>Accounting report for construction</td><td>Accounting export</td></tr>
+          <tr><td><code>Org Chart</code></td><td>Employee directory</td><td>Procurement (lookup on creation)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- WORKFORM -->
+    <div class="section" id="workform">
+      <div class="section-title">WorkForm — parent item fields</div>
+      <div class="alert alert-info">One single WorkForm for all Nebraska offices. Office is identified by UTM parameter in the URL — employees never see or touch the Office field.</div>
+
+      <table class="spec-table">
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Your Name</td><td>Dropdown</td><td><span class="tag tag-required">Required</span></td><td>Maps to Org Chart on creation via Workflow</td></tr>
+          <tr><td>Department</td><td>Single select</td><td><span class="tag tag-required">Required</span></td><td>Maintenance / Construction</td></tr>
+          <tr><td>Main Property</td><td>Multi select</td><td><span class="tag tag-required">Required</span></td><td>Nebraska property list</td></tr>
+          <tr><td>Order Address</td><td>Status</td><td><span class="tag tag-required">Required</span></td><td>Entire Property / Specific Building</td></tr>
+          <tr><td>Building and Unit Number</td><td>Text</td><td><span class="tag tag-optional">Optional</span></td><td>Show when Order Address = Specific Building</td></tr>
+          <tr><td>Job Number / Site Address</td><td>Text</td><td><span class="tag tag-optional">Optional</span></td><td>Construction orders</td></tr>
+          <tr><td>When do you need your item(s)?</td><td>Single select</td><td><span class="tag tag-required">Required</span></td><td>ASAP / 24-48 hrs / 1 week / 2 weeks</td></tr>
+          <tr><td>Notes</td><td>Long text</td><td><span class="tag tag-optional">Optional</span></td><td></td></tr>
+          <tr><td>Office</td><td>Dropdown</td><td><span class="tag tag-required">Required</span></td><td><strong>Hidden.</strong> Prefilled via UTM param in URL</td></tr>
+          <tr><td>Type of Order</td><td>Status</td><td><span class="tag tag-required">Required</span></td><td>Maintenance / Construction / Direct Ship — drives triage routing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PATH A -->
+    <div class="section" id="path-a">
+      <div class="section-title">Path A — stocked item (subitem fields)</div>
+
+      <div class="alert alert-info">Employee selects "Stocked Item" as Request Type. Inventory item picker appears. They select item → Item Name auto-populates. They enter quantity. Subitem row created.</div>
+
+      <table class="spec-table">
+        <thead>
+          <tr><th>Column</th><th>Type</th><th>Required</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Request Type</td><td>Dropdown</td><td><span class="tag tag-required">Required</span></td><td>Set to <strong>Stocked Item</strong></td></tr>
+          <tr><td>Item Name</td><td>Text</td><td><span class="tag tag-required">Required</span></td><td>Auto-populated from Inventory item name</td></tr>
+          <tr><td>Inventory Link</td><td>Connect to Inventory board</td><td><span class="tag tag-required">Required</span></td><td>Employee selects from Inventory board</td></tr>
+          <tr><td>Quantity</td><td>Number</td><td><span class="tag tag-required">Required</span></td><td>Employee enters</td></tr>
+          <tr><td>Product Description</td><td>Long text</td><td><span class="tag tag-optional">N/A</span></td><td>Leave empty</td></tr>
+          <tr><td>Product Link</td><td>URL</td><td><span class="tag tag-optional">Optional</span></td><td></td></tr>
+          <tr><td>Product Picture</td><td>File</td><td><span class="tag tag-optional">Optional</span></td><td></td></tr>
+          <tr><td>Request ID</td><td>Text</td><td>—</td><td>Set by automation from parent item Request ID</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Automation on subitem creation (Path A)</h4>
+      <div class="code-block"><span class="kw">TRIGGER:</span> When subitem is created
+<span class="kw">CONDITION:</span> Request Type = <span class="val">"Stocked Item"</span> AND Inventory Link is not empty
+
+<span class="kw">ACTION 1:</span> Set Item Name = {Inventory item name} (mirror)
+<span class="kw">ACTION 2:</span> Set Request ID = {parent item Request ID}</div>
+    </div>
+
+    <!-- PATH B -->
+    <div class="section" id="path-b">
+      <div class="section-title">Path B — special request / non-stock (subitem fields)</div>
+
+      <div class="alert alert-warn">Audrey's specific requirement from her post-SOW email. Employees must be able to describe items not in the warehouse. No inventory connection on submission — Dustin reviews manually.</div>
+
+      <table class="spec-table">
+        <thead>
+          <tr><th>Column</th><th>Type</th><th>Required</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Request Type</td><td>Dropdown</td><td><span class="tag tag-required">Required</span></td><td>Set to <strong>Special Request</strong></td></tr>
+          <tr><td>Item Name</td><td>Text</td><td>—</td><td>Auto-copied from Product Description by automation</td></tr>
+          <tr><td>Inventory Link</td><td>Connect to Inventory board</td><td><span class="tag tag-optional">N/A</span></td><td>Leave empty</td></tr>
+          <tr><td>Quantity</td><td>Number</td><td><span class="tag tag-required">Required</span></td><td>Employee enters</td></tr>
+          <tr><td>Product Description</td><td>Long text</td><td><span class="tag tag-required">Required</span></td><td>Employee describes item in plain text</td></tr>
+          <tr><td>Product Link</td><td>URL</td><td><span class="tag tag-optional">Optional</span></td><td></td></tr>
+          <tr><td>Product Picture</td><td>File</td><td><span class="tag tag-optional">Optional</span></td><td></td></tr>
+          <tr><td>Request ID</td><td>Text</td><td>—</td><td>Set by automation from parent item Request ID</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Automation on subitem creation (Path B)</h4>
+      <div class="code-block"><span class="kw">TRIGGER:</span> When subitem is created
+<span class="kw">CONDITION:</span> Request Type = <span class="val">"Special Request"</span>
+
+<span class="kw">ACTION 1:</span> Set Item Name = {Product Description}
+<span class="kw">ACTION 2:</span> Set Request ID = {parent item Request ID}
+<span class="kw">ACTION 3:</span> Notify Dustin — new special request requires manual procurement review</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- PROCUREMENT REQUESTS BOARD -->
+    <div class="section" id="procurement-board">
+      <div class="section-title">Procurement Requests board</div>
+
+      <h4>Columns</h4>
+      <table class="spec-table">
+        <thead>
+          <tr><th>Column name</th><th>Type</th><th>Column ID</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Item (name)</td><td>Item name</td><td>—</td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Request ID</td><td>Text</td><td><code>text_mks379fd</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Order Date</td><td>Date</td><td><code>date8</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Your Name</td><td>Dropdown</td><td><code>dropdown_mkrwwpja</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Department</td><td>Single select</td><td><code>single_select5</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Main Property</td><td>Multi select</td><td><code>multi_select</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Order Address</td><td>Status</td><td><code>color_mkrcqcnn</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Building and Unit Number</td><td>Text</td><td><code>text_mkrcn5yj</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Job Number / Site Address</td><td>Text</td><td><code>text_mkrcj8bv</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Type of Request</td><td>Status</td><td><code>color_mkrc11vs</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Move Request To</td><td>Status</td><td>—</td><td><span class="tag tag-keep">Keep</span> — routing trigger column</td></tr>
+          <tr><td>Status</td><td>Status</td><td>—</td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Delivery Timeline</td><td>Single select</td><td><code>single_select2</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Product Link</td><td>Long text</td><td><code>long_text2</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Product Pictures</td><td>File</td><td><code>upload_file</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Your Email</td><td>Email</td><td><code>email</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Your Phone</td><td>Phone</td><td><code>phone</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Organizational Chart</td><td>Connect to Org Chart board</td><td><code>board_relation_mkrwzn5n</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Construction Orders</td><td>Connect to Construction Orders</td><td><code>board_relation_mkrcjx84</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Construction Order Status</td><td>Mirror</td><td><code>lookup_mkrcjgbk</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>link to Maintenance Orders</td><td>Connect to Maintenance Orders</td><td><code>board_relation_mkrc2yxp</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Time tracking</td><td>Time tracking</td><td><code>duration_mkrcjspv</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Days to complete order</td><td>Formula</td><td><code>formula_mkrcebv</code></td><td><span class="tag tag-keep">Keep</span></td></tr>
+          <tr><td>Office</td><td>Dropdown</td><td>NEW</td><td><span class="tag tag-new">New</span> — hidden on form, UTM prefilled</td></tr>
+          <tr><td>Item Name &amp; Quantity (old)</td><td>Text</td><td>—</td><td><span class="tag tag-remove">Remove</span> — replaced by subitems</td></tr>
+          <tr><td>All Dup. of ... columns</td><td>Various</td><td>—</td><td><span class="tag tag-remove">Remove</span> — legacy band-aids</td></tr>
+          <tr><td>Email 1</td><td>Email mirror</td><td>—</td><td><span class="tag tag-remove">Remove</span> — 0% success, broken</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Native automations</h4>
+      <div class="code-block"><span class="cmt">// Set Request ID on creation</span>
+<span class="kw">TRIGGER:</span> When item is created
+<span class="kw">ACTION:</span> Set Request ID = {Item ID}
+<span class="tag tag-native" style="font-size:10px">NATIVE</span> <span class="cmt">Replaces scenario 1180</span>
+
+<span class="cmt">// Routing automations — keep all three</span>
+<span class="kw">TRIGGER:</span> When Move Request To changes to Maintenance
+<span class="kw">ACTION:</span> Create item in Maintenance Orders + Connect
+
+<span class="kw">TRIGGER:</span> When Move Request To changes to Construction
+<span class="kw">ACTION:</span> Create item in Construction Orders + Connect
+
+<span class="kw">TRIGGER:</span> When Move Request To changes to Direct Ship
+<span class="kw">ACTION:</span> Create item in Direct Ship + Connect
+
+<span class="cmt">// Date setter</span>
+<span class="kw">TRIGGER:</span> When item is created
+<span class="kw">ACTION:</span> Set Order Date = today
+
+<span class="cmt">// Time tracking</span>
+<span class="kw">TRIGGER:</span> When item is created → Start Time tracking
+<span class="kw">TRIGGER:</span> When Status changes to Shipped → Stop Time tracking
+
+<span class="cmt">// Notify Dustin</span>
+<span class="kw">TRIGGER:</span> When item is created
+<span class="kw">ACTION:</span> Send email to Dustin</div>
+
+      <h4>Automations to NOT build</h4>
+      <div class="alert alert-danger">Do NOT add email notification automations until the entire system is tested and confirmed working. Re-enabling notifications on a broken system caused 12 emails per order on the old build.</div>
+      <div class="code-block"><span class="warn">DO NOT BUILD:</span> When Status changes to something → send email to Email 1
+<span class="warn">DO NOT BUILD:</span> When Status changes to Shipped → send email to Email 1
+<span class="warn">DO NOT BUILD:</span> When Status changes to Order Received → send email to Email 1
+<span class="warn">DO NOT BUILD:</span> When Order Date changes → copy Email to Email 1
+<span class="warn">DO NOT BUILD:</span> Duplicate webhooks — only ONE webhook per event per board</span></div>
+    </div>
+
+    <!-- MAINTENANCE ORDERS BOARD -->
+    <div class="section" id="maintenance-board">
+      <div class="section-title">Maintenance Orders board</div>
+
+      <h4>Groups</h4>
+      <table class="spec-table">
+        <thead><tr><th>Group name</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Order Received</td><td>Newly routed items</td></tr>
+          <tr><td>Ready to Ship</td><td>In stock, ready for dispatch</td></tr>
+          <tr><td>Shipped</td><td>Completed orders</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Columns</h4>
+      <table class="spec-table">
+        <thead><tr><th>Column name</th><th>Type</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Item</td><td>Item name</td><td>Carried from Procurement item name</td></tr>
+          <tr><td>PO Number</td><td>Text</td><td></td></tr>
+          <tr><td>Order Date</td><td>Date</td><td>Set on creation</td></tr>
+          <tr><td>Status</td><td>Status</td><td>Order Received / Ready to Ship / Shipped</td></tr>
+          <tr><td>Stock</td><td>Status</td><td>Available / Needs to be ordered</td></tr>
+          <tr><td>Ordered Amount</td><td>Number</td><td></td></tr>
+          <tr><td>Received Amount</td><td>Number</td><td>Triggers Receiving Date + inventory update</td></tr>
+          <tr><td>Item Price</td><td>Number</td><td>Triggers 1230 cost sync to Inventory</td></tr>
+          <tr><td>Available in Inventory</td><td>Mirror from Inventory</td><td></td></tr>
+          <tr><td>Current Inventory Price</td><td>Mirror from Inventory</td><td></td></tr>
+          <tr><td>Delivery Timeline</td><td>Single select</td><td>Drives deadline calculation</td></tr>
+          <tr><td>Deadline</td><td>Date</td><td>Set by delivery timeline automation</td></tr>
+          <tr><td>Estimated Delivery Timeline</td><td>Timeline</td><td></td></tr>
+          <tr><td>Order Details</td><td>Connect to Procurement</td><td></td></tr>
+          <tr><td>Inventory</td><td>Connect to Inventory board</td><td>Populated by Workflow (replaces 1192)</td></tr>
+          <tr><td>Receiving Date</td><td>Date</td><td>Set when Received Amount changes</td></tr>
+          <tr><td>Shipping Date</td><td>Date</td><td>Set when Status = Shipped</td></tr>
+          <tr><td>Request ID</td><td>Text</td><td>Carried from Procurement</td></tr>
+          <tr><td>Procurement link</td><td>Connect to Procurement</td><td></td></tr>
+        </tbody>
+      </table>
+
+      <h4>Automations — status transitions (single direction only)</h4>
+      <div class="alert alert-danger">Never add a "When item moved to group → set Status" automation. This creates the loop. Status drives group movement. Group movement never drives status.</div>
+      <div class="code-block"><span class="kw">TRIGGER:</span> When Status changes to Order Received
+<span class="kw">ACTION:</span> Move item to Order Received group
+
+<span class="kw">TRIGGER:</span> When Status changes to Ready to Ship
+<span class="kw">ACTION:</span> Move item to Ready to Ship group
+
+<span class="kw">TRIGGER:</span> When Status changes to Shipped
+<span class="kw">ACTION:</span> Move item to Shipped group</div>
+
+      <h4>Automations — date setters</h4>
+      <div class="code-block"><span class="kw">TRIGGER:</span> When Received Amount changes
+<span class="kw">ACTION:</span> Set Receiving Date = today
+
+<span class="kw">TRIGGER:</span> When Status changes to Shipped
+<span class="kw">ACTION:</span> Set Shipping Date = today</div>
+
+      <h4>Automations — report creation (single trigger only)</h4>
+      <div class="code-block"><span class="kw">TRIGGER:</span> When Status changes to Shipped
+<span class="kw">ACTION:</span> Create item in Maintenance Order Report
+<span class="kw">MAP:</span> Item name, Order Date, Shipping Date, Receiving Date,
+      Ordered Amount, Received Amount, Item Price,
+      Main Property, Building and Unit Number, Request ID
+
+<span class="warn">DO NOT ADD:</span> When Receiving Date changes → create report item
+<span class="warn">DO NOT ADD:</span> When Shipping Date changes → create report item</div>
+
+      <h4>Automations — delivery timeline</h4>
+      <div class="code-block"><span class="kw">TRIGGER:</span> When item created AND Delivery Timeline = ASAP
+<span class="kw">ACTION:</span> Set Deadline = today + 1 day, Set Order Date = today
+
+<span class="kw">TRIGGER:</span> When item created AND Delivery Timeline = 24-48 hours
+<span class="kw">ACTION:</span> Set Deadline = today + 2 days, Set Order Date = today
+
+<span class="kw">TRIGGER:</span> When item created AND Delivery Timeline = 1 week
+<span class="kw">ACTION:</span> Set Deadline = today + 7 days, Set Order Date = today
+
+<span class="kw">TRIGGER:</span> When item created AND Delivery Timeline = 2 weeks
+<span class="kw">ACTION:</span> Set Deadline = today + 14 days, Set Order Date = today
+
+<span class="warn">ONE automation per delivery option only. Do not duplicate.</span></div>
+
+      <h4>Automations — status mirror from Procurement</h4>
+      <div class="code-block"><span class="kw">TRIGGER:</span> When Maintenance Order Status (mirror) changes to Order Received
+<span class="kw">ACTION:</span> Set Status = Order Received
+
+<span class="kw">TRIGGER:</span> When Maintenance Order Status (mirror) changes to Ready to Ship
+<span class="kw">ACTION:</span> Set Status = Ready to Ship
+
+<span class="kw">TRIGGER:</span> When Maintenance Order Status (mirror) changes to Shipped
+<span class="kw">ACTION:</span> Set Status = Shipped</div>
+
+      <h4>Webhooks (Make.com triggers)</h4>
+      <div class="code-block"><span class="kw">WEBHOOK 1:</span> When item is created → send webhook <span class="cmt">(triggers scenario 1230)</span>
+<span class="kw">WEBHOOK 2:</span> When Status changes to Shipped → send webhook <span class="cmt">(triggers scenario 1230)</span>
+
+<span class="warn">ONE webhook per event. No duplicate pairs.</span></div>
+    </div>
+
+    <!-- CONSTRUCTION ORDERS BOARD -->
+    <div class="section" id="construction-board">
+      <div class="section-title">Construction Orders board</div>
+      <div class="alert alert-info">Same structure as Maintenance Orders with one additional column.</div>
+
+      <h4>Additional column (Construction only)</h4>
+      <table class="spec-table">
+        <thead><tr><th>Column name</th><th>Type</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Is this order for main property or specific building?</td><td>Status</td><td><code>color_mkrcx62g</code> — Entire Property / Specific Building</td></tr>
+        </tbody>
+      </table>
+
+      <h4>All other columns, automations, and webhooks</h4>
+      <p>Identical to Maintenance Orders board. Apply the exact same automation rules. Single-direction status→group only. Single report trigger. One webhook per event.</p>
+    </div>
+
+    <!-- INVENTORY BOARD -->
+    <div class="section" id="inventory-board">
+      <div class="section-title">Inventory board</div>
+
+      <h4>Columns</h4>
+      <table class="spec-table">
+        <thead><tr><th>Column name</th><th>Type</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Item name</td><td>Item name</td><td>SKU / item label</td></tr>
+          <tr><td>Current Quantity</td><td>Number</td><td><code>numeric_mks3jd2m</code> — updated by scenario 1230</td></tr>
+          <tr><td>Cost</td><td>Number</td><td><code>numeric_mkqe93wa</code> — updated by scenario 1230 and Workflow 1234</td></tr>
+          <tr><td>Stock Status</td><td>Status</td><td>Available / Low / Out of Stock</td></tr>
+          <tr><td>Reorder Threshold</td><td>Number</td><td>Configurable per item — triggers reorder alert</td></tr>
+          <tr><td>Office</td><td>Dropdown</td><td>Which Nebraska office holds this stock</td></tr>
+          <tr><td>Unit</td><td>Text</td><td>Each / Box / Roll etc</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Automations — reorder alerts</h4>
+      <div class="code-block"><span class="kw">TRIGGER:</span> When Current Quantity changes
+<span class="kw">CONDITION:</span> Current Quantity &lt; Reorder Threshold
+<span class="kw">ACTION:</span> Notify designated procurement coordinator
+<span class="kw">NOTE:</span> Configurable per item. One automation. No duplicates.</div>
+    </div>
+
+    <!-- REPORT BOARDS -->
+    <div class="section" id="report-boards">
+      <div class="section-title">Report boards (Maintenance + Construction)</div>
+
+      <h4>Columns — both report boards</h4>
+      <table class="spec-table">
+        <thead><tr><th>Column name</th><th>Type</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>Item name</td><td>Item name</td><td>Carried from order on creation</td></tr>
+          <tr><td>Order Date</td><td>Date</td><td>Carried from order</td></tr>
+          <tr><td>Shipping Date</td><td>Date</td><td>Carried from order</td></tr>
+          <tr><td>Receiving Date</td><td>Date</td><td>Carried from order</td></tr>
+          <tr><td>Ordered Amount</td><td>Number</td><td>Carried from order</td></tr>
+          <tr><td>Received Amount</td><td>Number</td><td>Carried from order</td></tr>
+          <tr><td>Item Price</td><td>Number</td><td>Carried on creation + updated by Workflow 1234</td></tr>
+          <tr><td>Total Received Items Cost</td><td>Formula</td><td>Received Amount × Item Price</td></tr>
+          <tr><td>Total Shipped Orders Cost</td><td>Formula</td><td>Ordered Amount × Item Price</td></tr>
+          <tr><td>Main Property</td><td>Text / Mirror</td><td>Carried from order</td></tr>
+          <tr><td>Building and Unit Number</td><td>Text</td><td>Carried from order</td></tr>
+          <tr><td>Type of Request</td><td>Status</td><td>Carried from order</td></tr>
+          <tr><td>Department</td><td>Status</td><td>Carried from order</td></tr>
+          <tr><td>Request ID</td><td>Text</td><td><code>text_mktkgq7b</code> — key for Workflow 1234 lookup</td></tr>
+        </tbody>
+      </table>
+
+      <div class="alert alert-warn">Total Received Items Cost and Total Shipped Orders Cost are formula columns — they calculate automatically. These are the columns Audrey said weren't populating. With Item Price now populated correctly by Workflow 1234, these formulas will work without any additional automation.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- NATIVE AUTOMATIONS -->
+    <div class="section" id="native-autos">
+      <div class="section-title">Native automations summary</div>
+      <table class="spec-table">
+        <thead><tr><th>Board</th><th>Automation</th><th>Replaces</th></tr></thead>
+        <tbody>
+          <tr><td>Procurement Requests</td><td>When item created → set Request ID = {Item ID}</td><td>Scenario 1180</td></tr>
+          <tr><td>Procurement Requests</td><td>When Move Request To = Maintenance → create + connect</td><td>Existing (keep)</td></tr>
+          <tr><td>Procurement Requests</td><td>When Move Request To = Construction → create + connect</td><td>Existing (keep)</td></tr>
+          <tr><td>Procurement Requests</td><td>When Move Request To = Direct Ship → create + connect</td><td>Existing (keep)</td></tr>
+          <tr><td>Maintenance Orders</td><td>When Status = X → move to X group (×3)</td><td>Loop fix</td></tr>
+          <tr><td>Maintenance Orders</td><td>When Received Amount changes → set Receiving Date = today</td><td>Existing (keep)</td></tr>
+          <tr><td>Maintenance Orders</td><td>When Status = Shipped → set Shipping Date = today</td><td>Existing (keep)</td></tr>
+          <tr><td>Maintenance Orders</td><td>When Status = Shipped → create item in Report</td><td>Clean single trigger</td></tr>
+          <tr><td>Construction Orders</td><td>All of the above, same pattern</td><td>Loop fix</td></tr>
+          <tr><td>Inventory</td><td>When Current Quantity &lt; Reorder Threshold → notify</td><td>New</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ENTERPRISE WORKFLOWS -->
+    <div class="section" id="workflows">
+      <div class="section-title">Enterprise Workflows</div>
+
+      <div class="board-card">
+        <div class="board-card-header">
+          <div class="board-name">Workflow A — Employee org chart link <span class="board-id">(replaces scenario 1174)</span></div>
+          <span class="tag tag-native">Enterprise Workflow</span>
+        </div>
+        <div class="board-card-body">
+          <div class="code-block"><span class="kw">BOARD:</span> Procurement Requests
+<span class="kw">TRIGGER:</span> When item is created
+
+<span class="kw">ACTION 1:</span> Find item in Org Chart board
+  Search column: Name
+  Search value: {Your Name} dropdown text value
+
+<span class="kw">FOUND branch:</span>
+  ACTION: Connect boards
+  Column: Organizational Chart
+  Connect to: {matched Org Chart item}
+
+<span class="kw">NOT FOUND branch:</span>
+  Do nothing (silent fail — same as old Make.com onerror:Ignore)
+
+<span class="warn">VERIFY BEFORE LIVE:</span> Dropdown label values must exactly match
+Org Chart item names. Test with one known name first.</div>
+        </div>
+      </div>
+
+      <div class="board-card">
+        <div class="board-card-header">
+          <div class="board-name">Workflow B — Inventory connect to order <span class="board-id">(replaces scenario 1192)</span></div>
+          <span class="tag tag-native">Enterprise Workflow</span>
+        </div>
+        <div class="board-card-body">
+          <div class="code-block"><span class="cmt">// Build this as TWO separate workflows — one per board</span>
+
+<span class="kw">BOARD:</span> Construction Orders (repeat for Maintenance Orders)
+<span class="kw">TRIGGER:</span> When item is created
+
+<span class="kw">ACTION 1:</span> Find item in Procurement Requests
+  Search column: Request ID
+  Search value: {Request ID on this item}
+
+<span class="kw">FOUND branch:</span>
+  ACTION: Connect boards
+  Column: Inventory
+  Connect to: {Inventory linked item from found Procurement item}
+
+<span class="kw">NOT FOUND branch:</span>
+  Do nothing</div>
+        </div>
+      </div>
+
+      <div class="board-card">
+        <div class="board-card-header">
+          <div class="board-name">Workflow C — Item price sync to inventory <span class="board-id">(replaces scenario 1234)</span></div>
+          <span class="tag tag-native">Enterprise Workflow</span>
+        </div>
+        <div class="board-card-body">
+          <div class="code-block"><span class="cmt">// Build as TWO separate workflows — one per report board</span>
+
+<span class="kw">BOARD:</span> Construction Order Report (repeat for Maintenance Order Report)
+<span class="kw">TRIGGER:</span> When Item Price column changes
+
+<span class="kw">ACTION 1:</span> Find item in Procurement Requests
+  Search column: Request ID
+  Search value: {Request ID on this report item}
+
+<span class="kw">FOUND branch:</span>
+  ACTION 2: Find item in Inventory
+    Search: {Inventory linked item from found Procurement item}
+
+  FOUND branch:
+    ACTION: Change column value
+    Board: Inventory
+    Column: Cost
+    Value: {Item Price from this report item}
+
+<span class="kw">NOT FOUND branches:</span> Do nothing at each level</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAKE.COM SCENARIOS -->
+    <div class="section" id="make-scenarios">
+      <div class="section-title">Make.com scenarios</div>
+
+      <table class="spec-table">
+        <thead>
+          <tr><th>Scenario</th><th>Name</th><th>Action</th><th>Reason</th></tr>
+        </thead>
+        <tbody>
+          <tr class="scenario-row-remove">
+            <td><code>1180</code></td>
+            <td>Request for inventory</td>
+            <td><span class="tag tag-remove">Delete</span></td>
+            <td>Replaced by native automation</td>
+          </tr>
+          <tr class="scenario-row-replace">
+            <td><code>1174</code></td>
+            <td>Employee info</td>
+            <td><span class="tag tag-native">Replace — Workflow A</span></td>
+            <td>Find + connect pattern, native Workflow handles it</td>
+          </tr>
+          <tr class="scenario-row-replace">
+            <td><code>1192</code></td>
+            <td>Inventory connect to order</td>
+            <td><span class="tag tag-native">Replace — Workflow B</span></td>
+            <td>Found/not found routing covers cross-board lookup</td>
+          </tr>
+          <tr class="scenario-row-keep">
+            <td><code>1230</code></td>
+            <td>Item Price (orders → inventory)</td>
+            <td><span class="tag tag-make">Keep — add idempotency</span></td>
+            <td>Arithmetic on column values — cannot be done natively</td>
+          </tr>
+          <tr class="scenario-row-replace">
+            <td><code>1234</code></td>
+            <td>Item Price (reports → inventory)</td>
+            <td><span class="tag tag-native">Replace — Workflow C</span></td>
+            <td>Straight value copy across boards — no math needed</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>Scenario 1230 — idempotency check (add to top of scenario)</h4>
+      <div class="code-block"><span class="cmt">// Add BEFORE any routing logic in scenario 1230</span>
+
+<span class="kw">STEP 1:</span> Build key string
+  key = {boardId} + <span class="val">"-"</span> + {pulseId} + <span class="val">"-"</span> + {columnId}
+
+<span class="kw">STEP 2:</span> Check data store — has this key been processed?
+  Data store: RIZER_processed_events
+  Search: key = {key from Step 1}
+
+<span class="kw">IF FOUND:</span> Stop (Ignore module) — already processed
+<span class="kw">IF NOT FOUND:</span> Write key to data store, then continue
+
+<span class="cmt">// This ensures inventory math only runs ONCE per event
+// Even if the webhook fires twice due to any loop remnants</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- OFFICE URLS -->
+    <div class="section" id="office-urls">
+      <div class="section-title">Office form URLs</div>
+
+      <p>One WorkForm. UTM parameter in the URL prefills the hidden Office column. Distribute the correct URL to each office — employees never see or change the office field.</p>
+
+      <div class="url-box">
+        <div class="url-label">Omaha</div>
+        <div class="url-value">https://forms.monday.com/forms/[FORM_ID]?office=omaha</div>
+      </div>
+      <div class="url-box">
+        <div class="url-label">Lincoln</div>
+        <div class="url-value">https://forms.monday.com/forms/[FORM_ID]?office=lincoln</div>
+      </div>
+      <div class="url-box">
+        <div class="url-label">[Office 3]</div>
+        <div class="url-value">https://forms.monday.com/forms/[FORM_ID]?office=[slug]</div>
+      </div>
+
+      <div class="alert alert-info">Replace [FORM_ID] with the actual form ID once built. Replace [slug] values with whatever office identifiers match the Office dropdown options exactly. Document final URLs in a mondayDoc in the RIZER account accessible to Audrey.</div>
+    </div>
+
+    <!-- ACCEPTANCE CRITERIA -->
+    <div class="section" id="acceptance">
+      <div class="section-title">Acceptance criteria — test before go-live</div>
+
+      <div class="build-steps">
+        <div class="build-step">
+          <div class="step-num pending">✓</div>
+          <div class="step-content">
+            <div class="step-title">Submit a Path A form (stocked item)</div>
+            <div class="step-desc">Subitem created with correct inventory link. Request ID set. Office prefilled from URL. Org Chart connected.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num pending">✓</div>
+          <div class="step-content">
+            <div class="step-title">Submit a Path B form (special request)</div>
+            <div class="step-desc">Subitem created with description. No inventory link. Dustin notified. Request ID set.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num pending">✓</div>
+          <div class="step-content">
+            <div class="step-title">Submit multi-item request (3 items)</div>
+            <div class="step-desc">3 subitem rows created. No manual duplication by Dustin. Each row independent.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num pending">✓</div>
+          <div class="step-content">
+            <div class="step-title">Route to Maintenance, mark Shipped</div>
+            <div class="step-desc">Exactly 1 inventory deduction. Exactly 1 report row created. Exactly 1 notification sent. No loop.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num pending">✓</div>
+          <div class="step-content">
+            <div class="step-title">Route to Construction, mark Shipped</div>
+            <div class="step-desc">Same as above. Check Make.com execution history — scenario 1230 should show exactly 1 run.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num pending">✓</div>
+          <div class="step-content">
+            <div class="step-title">Test reorder alert</div>
+            <div class="step-desc">Set an inventory item's Reorder Threshold above current quantity. Verify notification fires once.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num pending">✓</div>
+          <div class="step-content">
+            <div class="step-title">Test returns workflow</div>
+            <div class="step-desc">Initiate return. Inventory quantity restored. Accounting flagged. Audit trail entry created. Unauthorized user cannot trigger return.</div>
+          </div>
+        </div>
+        <div class="build-step">
+          <div class="step-num pending">✓</div>
+          <div class="step-content">
+            <div class="step-title">Verify report columns populate</div>
+            <div class="step-desc">Receiving Date, Received Amount, Item Price, Total Shipped Orders Cost — all populated correctly on report rows.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        a.classList.add('active');
+      }
+    });
+  });
+
+  // Active nav on scroll
+  const sections = document.querySelectorAll('.section[id]');
+  const navItems = document.querySelectorAll('.nav-item');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navItems.forEach(n => n.classList.remove('active'));
+        const active = document.querySelector(`.nav-item[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-60px 0px -60px 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
