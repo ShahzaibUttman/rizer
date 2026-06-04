@@ -228,11 +228,14 @@ async function submitRequest(form, cartItems) {
 
   // Helper: set one subitem column value
   async function setCol(sid, colId, value) {
-    const val = typeof value === 'string' ? value : JSON.stringify(value);
+    // monday change_column_value expects $v:JSON!
+    // Always pass the actual JS value (string, object, number) — gql() will JSON.stringify the whole body
+    // So string "hello" → sent as "hello" in JSON → valid JSON string ✓
+    // Object {label:"X"} → sent as {"label":"X"} → valid JSON object ✓
     try {
       await gql(
         `mutation($b:ID!,$i:ID!,$c:String!,$v:JSON!){change_column_value(board_id:$b,item_id:$i,column_id:$c,value:$v,create_labels_if_missing:true){id}}`,
-        { b: bid, i: sid, c: colId, v: val }
+        { b: bid, i: sid, c: colId, v: value }
       );
     } catch(e) { console.warn('setCol failed', colId, ':', e.message); }
   }
@@ -260,22 +263,35 @@ async function submitRequest(form, cartItems) {
       await setCol(sid, sc.requestRouteTo, { label: item.routeTo });
     }
 
-    // Request ID — text column = this subitem's own monday ID
+    // Request ID — text column, pass as JSON-encoded string
     await setCol(sid, sc.requestId, sid);
 
-    // Stock Status (Taking from WH / Needs Ordered) — write to description prefix or dedicated col
-    if (item.stockStatus) {
-      // Write to Type of Request notes or a separate col if available — using description prefix for now
-      const existingDesc = item.desc || '';
-      const fullDesc = item.stockStatus + (existingDesc ? ' — ' + existingDesc : '');
-      await setCol(sid, sc.description, fullDesc);
-    }
-
-    // Product Description — text column (plain string, not object)
+    // Product Description — text type column, must be plain string
     if (item.desc) await setCol(sid, sc.description, item.desc);
+
+    // Stock Status goes to the item name prefix (visible on board without needing a column)
+    // Already handled via color_mm3bj7cc above
 
     // Product Link — link column
     if (item.link) await setCol(sid, sc.link, { url: item.link, text: item.link });
+
+    // Product Picture — file upload via monday.com file API
+    if (item.pictureFile) {
+      try {
+        const fd = new FormData();
+        fd.append('itemId', sid);
+        fd.append('columnId', sc.picture);
+        fd.append('token', C.token);
+        fd.append('file', item.pictureFile, item.pictureFile.name);
+        const fr = await fetch('/api/upload', {
+          method: 'POST',
+          body: fd
+        });
+        const fd2 = await fr.json();
+        if (fd2.error) console.warn('Picture upload error:', fd2.error);
+        else console.log('  ✓ picture uploaded');
+      } catch(e) { console.warn('  ✗ picture upload failed:', e.message); }
+    }
 
     // Inventory board relation — connect_boards column
     if (item.type === 'stocked' && item.invId) {
@@ -533,7 +549,7 @@ function renderS2(page) {
         card.onclick = () => {
           if (item.status === 'ot') return;
           if (inCart) S.cart = S.cart.filter(c => c.invId !== item.id);
-          else S.cart.push({ id: Date.now(), invId: item.id, name: item.name, qty: 1, type: 'stocked', desc: '', link: '', routeTo: '', stockStatus: '' });
+          else S.cart.push({ id: Date.now(), invId: item.id, name: item.name, qty: 1, type: 'stocked', desc: '', link: '', routeTo: '', stockStatus: '', pictureFile: null });
           re();
         };
         g.appendChild(card);
@@ -562,7 +578,7 @@ function renderS2(page) {
       card.onclick = () => {
         if (item.status === 'ot') return;
         if (inCart) S.cart = S.cart.filter(c => c.invId !== item.id);
-        else S.cart.push({ id: Date.now(), invId: item.id, name: item.name, qty: 1, type: 'stocked', desc: '', link: '', routeTo: '', stockStatus: '' });
+        else S.cart.push({ id: Date.now(), invId: item.id, name: item.name, qty: 1, type: 'stocked', desc: '', link: '', routeTo: '', stockStatus: '', pictureFile: null });
         re();
       };
       grid.appendChild(card);
@@ -643,7 +659,26 @@ function renderS2(page) {
       linkInp.type = 'url'; linkInp.placeholder = 'Product URL (optional)'; linkInp.value = item.link || '';
       linkInp.oninput = e => { S.cart = S.cart.map(c => c.id === item.id ? { ...c, link: e.target.value } : c); };
 
-      ex.appendChild(descInp); ex.appendChild(linkInp);
+      // Image upload button
+      const picRow = mk('div', 'ci-extra-row');
+      const picLabel = mk('label', 'file-btn');
+      picLabel.innerHTML = '📷 Add image';
+      const picInput = document.createElement('input');
+      picInput.type = 'file'; picInput.accept = 'image/*,application/pdf';
+      picInput.style.display = 'none';
+      picInput.onchange = e => {
+        const file = e.target.files[0];
+        if (file) S.cart = S.cart.map(c => c.id === item.id ? { ...c, pictureFile: file } : c);
+        re();
+      };
+      picLabel.appendChild(picInput);
+      picRow.appendChild(picLabel);
+      if (item.pictureFile) {
+        const pv = mk('div', '', '✓ ' + item.pictureFile.name);
+        pv.style.cssText = 'font-size:11px;color:var(--grn);margin-top:2px';
+        picRow.appendChild(pv);
+      }
+      ex.appendChild(descInp); ex.appendChild(linkInp); ex.appendChild(picRow);
       ci.appendChild(ex); cl.appendChild(ci);
     });
     cb.appendChild(cl);
@@ -756,7 +791,7 @@ function updQty(id, qty) {
 
 function addSpecial() {
   if (!S.sName.trim()) { S.err = 'Please enter an item name.'; re(); return; }
-  S.cart.push({ id: Date.now(), invId: null, name: S.sName.trim(), qty: S.sQty, type: 'special', desc: S.sDesc, link: S.sLink, routeTo: '', stockStatus: '' });
+  S.cart.push({ id: Date.now(), invId: null, name: S.sName.trim(), qty: S.sQty, type: 'special', desc: S.sDesc, link: S.sLink, routeTo: '', stockStatus: '', pictureFile: null });
   S.sName = ''; S.sDesc = ''; S.sQty = 1; S.sLink = ''; S.showSpl = false; S.err = ''; re();
 }
 
@@ -795,7 +830,8 @@ async function doSubmit() {
       desc:    c.desc   || '',
       link:    c.link   || '',
       routeTo:     c.routeTo     || '',
-      stockStatus: c.stockStatus || '',
+      stockStatus:  c.stockStatus  || '',
+      pictureFile:  c.pictureFile  || null,
     }));
     console.log('Submitting payload:', payload);
     const id = await submitRequest(S.f, payload);
