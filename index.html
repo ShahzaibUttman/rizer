@@ -228,14 +228,14 @@ async function submitRequest(form, cartItems) {
 
   // Helper: set one subitem column value
   async function setCol(sid, colId, value) {
-    // monday change_column_value expects $v:JSON!
-    // Always pass the actual JS value (string, object, number) — gql() will JSON.stringify the whole body
-    // So string "hello" → sent as "hello" in JSON → valid JSON string ✓
-    // Object {label:"X"} → sent as {"label":"X"} → valid JSON object ✓
+    // monday $v:JSON! requires:
+    //   text/numbers columns → pass as JSON-encoded string: JSON.stringify("hello") = "\"hello\""
+    //   status/object columns → pass as object: {label:"X"} stays as-is
+    const v = typeof value === 'string' ? JSON.stringify(value) : value;
     try {
       await gql(
         `mutation($b:ID!,$i:ID!,$c:String!,$v:JSON!){change_column_value(board_id:$b,item_id:$i,column_id:$c,value:$v,create_labels_if_missing:true){id}}`,
-        { b: bid, i: sid, c: colId, v: value }
+        { b: bid, i: sid, c: colId, v: v }
       );
     } catch(e) { console.warn('setCol failed', colId, ':', e.message); }
   }
@@ -279,17 +279,20 @@ async function submitRequest(form, cartItems) {
     if (item.pictureFile) {
       try {
         const fd = new FormData();
-        fd.append('itemId', sid);
-        fd.append('columnId', sc.picture);
-        fd.append('token', C.token);
-        fd.append('file', item.pictureFile, item.pictureFile.name);
-        const fr = await fetch('/api/upload', {
+        const uploadMutation = `mutation ($file: File!) { add_file_to_column(item_id: ${sid}, column_id: "${sc.picture}", file: $file) { id } }`;
+        fd.append('query', uploadMutation);
+        fd.append('variables[file]', item.pictureFile, item.pictureFile.name);
+        const fr = await fetch('https://api.monday.com/v2/file', {
           method: 'POST',
+          headers: { 'Authorization': C.token },
           body: fd
         });
-        const fd2 = await fr.json();
-        if (fd2.error) console.warn('Picture upload error:', fd2.error);
-        else console.log('  ✓ picture uploaded');
+        if (!fr.ok) { console.warn('  ✗ picture upload HTTP error:', fr.status); }
+        else {
+          const fd2 = await fr.json();
+          if (fd2.errors) console.warn('Picture upload error:', fd2.errors);
+          else console.log('  ✓ picture uploaded');
+        }
       } catch(e) { console.warn('  ✗ picture upload failed:', e.message); }
     }
 
