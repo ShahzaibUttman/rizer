@@ -1,9 +1,10 @@
-<!-- v2.5 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<!-- v3.1-full-inventory -->
 <title>RIZER — Procurement Request</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -161,6 +162,7 @@ const C = {
     email:        'email_mm1t8b39',
     phone:        'phone_mm1tjq5d',
     office:       'dropdown_mm1tcmaa',
+    notesDustin:  'text_mm447f14',       // Notes for Dustin | text
   },
 
   // ── Subitem board (confirmed from console query) ──
@@ -168,6 +170,7 @@ const C = {
   subCols: {
     typeOfRequest:    'status',                  // Type of Request | status (Stocked/Special)
     requestRouteTo:   'color_mm3bj7cc',          // Route To | status (Maintenance/Construction/Direct Ship)
+    stockStatus:      'color_mm40adjt',           // Stock Status | status — Taking from WH / Needs Ordered
     inventory:        'board_relation_mm21hhn2',
     qty:              'numeric_mm2197fc',
     description:      'text_mm21qbaq',
@@ -224,20 +227,32 @@ async function submitRequest(form, cartItems) {
   const parentId = pr.create_item.id;
   console.log('Parent ID:', parentId);
 
+  // Notes for Dustin — text column, write after creation using change_simple_column_value
+  if (form.notes) {
+    try {
+      await gql(`mutation{change_simple_column_value(board_id:"${C.prc}",item_id:"${parentId}",column_id:"${pc.notesDustin}",value:${JSON.stringify(form.notes)}){id}}`);
+    } catch(e) { console.warn('notes failed:', e.message); }
+  }
+
   const sc = C.subCols;
   const bid = C.subBoardId;
 
   // Helper: set one subitem column value
   async function setCol(sid, colId, value) {
-    // monday $v:JSON! requires:
-    //   text/numbers columns → pass as JSON-encoded string: JSON.stringify("hello") = "\"hello\""
-    //   status/object columns → pass as object: {label:"X"} stays as-is
-    const v = typeof value === 'string' ? JSON.stringify(value) : value;
+    // Use proper GraphQL variables - pass value as variable not inlined in query string
+    // This is the only correct approach for JSON! type
+    const v = typeof value === 'object' ? JSON.stringify(value) : String(value);
     try {
-      await gql(
-        `mutation($b:ID!,$i:ID!,$c:String!,$v:JSON!){change_column_value(board_id:$b,item_id:$i,column_id:$c,value:$v,create_labels_if_missing:true){id}}`,
-        { b: bid, i: sid, c: colId, v: v }
-      );
+      const r = await fetch('https://api.monday.com/v2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': C.token, 'API-Version': '2024-01' },
+        body: JSON.stringify({
+          query: `mutation($bid:ID!,$iid:ID!,$col:String!,$val:JSON!){change_column_value(board_id:$bid,item_id:$iid,column_id:$col,value:$val,create_labels_if_missing:true){id}}`,
+          variables: { bid: bid, iid: sid, col: colId, val: v }
+        })
+      });
+      const d = await r.json();
+      if (d.errors) console.warn('setCol failed', colId, ':', d.errors[0].message);
     } catch(e) { console.warn('setCol failed', colId, ':', e.message); }
   }
 
@@ -265,36 +280,49 @@ async function submitRequest(form, cartItems) {
     }
 
     // Request ID — text column, pass as JSON-encoded string
-    await setCol(sid, sc.requestId, sid);
+    // Request ID — text column, use change_simple_column_value
+    try {
+      await gql(
+        `mutation{change_simple_column_value(board_id:"${bid}",item_id:"${sid}",column_id:"${sc.requestId}",value:${JSON.stringify(sid)}){id}}`
+      );
+    } catch(e) { console.warn('requestId failed:', e.message); }
 
     // Product Description — text type column, must be plain string
-    if (item.desc) await setCol(sid, sc.description, item.desc);
+    // Description — text column uses change_simple_column_value (plain string)
+    if (item.desc) {
+      try {
+        await gql(
+          `mutation{change_simple_column_value(board_id:"${bid}",item_id:"${sid}",column_id:"${sc.description}",value:${JSON.stringify(item.desc)}){id}}`
+        );
+      } catch(e) { console.warn('desc failed:', e.message); }
+    }
 
-    // Stock Status goes to the item name prefix (visible on board without needing a column)
-    // Already handled via color_mm3bj7cc above
+    // Stock Status — Taking from WH or Needs Ordered → status column color_mm3jvz7
+    if (item.stockStatus) {
+      await setCol(sid, sc.stockStatus, { label: item.stockStatus });
+    }
 
     // Product Link — link column
     if (item.link) await setCol(sid, sc.link, { url: item.link, text: item.link });
 
-    // Product Picture — file upload via monday.com file API
-    if (item.pictureFile) {
-      try {
-        const fd = new FormData();
-        const uploadMutation = `mutation ($file: File!) { add_file_to_column(item_id: ${sid}, column_id: "${sc.picture}", file: $file) { id } }`;
-        fd.append('query', uploadMutation);
-        fd.append('variables[file]', item.pictureFile, item.pictureFile.name);
-        const fr = await fetch('https://api.monday.com/v2/file', {
-          method: 'POST',
-          headers: { 'Authorization': C.token },
-          body: fd
-        });
-        if (!fr.ok) { console.warn('  ✗ picture upload HTTP error:', fr.status); }
-        else {
-          const fd2 = await fr.json();
-          if (fd2.errors) console.warn('Picture upload error:', fd2.errors);
-          else console.log('  ✓ picture uploaded');
-        }
-      } catch(e) { console.warn('  ✗ picture upload failed:', e.message); }
+    // Product Pictures — upload each file
+    if (item.pictureFiles && item.pictureFiles.length) {
+      for (const picFile of item.pictureFiles) {
+        try {
+          const fd = new FormData();
+          fd.append('itemId', sid);
+          fd.append('columnId', sc.picture);
+          fd.append('token', C.token);
+          fd.append('file', picFile, picFile.name);
+          const fr = await fetch('/api/upload', { method: 'POST', body: fd });
+          if (!fr.ok) { console.warn('  ✗ picture upload failed:', fr.status); }
+          else {
+            const res2 = await fr.json();
+            if (res2.error) console.warn('Picture upload error:', res2.error);
+            else console.log('  ✓ picture uploaded:', picFile.name);
+          }
+        } catch(e) { console.warn('  ✗ picture upload failed:', e.message); }
+      }
     }
 
     // Inventory board relation — connect_boards column
@@ -523,10 +551,18 @@ function renderS1(page) {
   bar.appendChild(btn); page.appendChild(bar);
 }
 
+// Multi-word search: every term must appear somewhere in the name, any order
+function matchesSearch(item, query) {
+  const q = (query || '').trim().toLowerCase();
+  if (!q) return true;
+  const name = item.name.toLowerCase();
+  return q.split(/\s+/).every(term => name.includes(term));
+}
+
 // ── STEP 2 ─────────────────────────────────────────────────────────
 function renderS2(page) {
   const filtered = S.inv.filter(i =>
-    i.name.toLowerCase().includes(S.search.toLowerCase()) &&
+    matchesSearch(i, S.search) &&
     (S.filter === 'all' || i.status === S.filter)
   );
 
@@ -542,7 +578,9 @@ function renderS2(page) {
     // Update grid in-place without full re() so input keeps focus on mobile
     const g = document.getElementById('inv-grid');
     if (g) {
-      const filt = S.inv.filter(i => i.name.toLowerCase().includes(S.search.toLowerCase()) && (S.filter === 'all' || i.status === S.filter));
+      const filt = S.inv.filter(i => matchesSearch(i, S.search) && (S.filter === 'all' || i.status === S.filter));
+      const cnt = document.getElementById('inv-count');
+      if (cnt) cnt.textContent = filt.length + ' items';
       g.innerHTML = '';
       if (!filt.length) { g.innerHTML = '<div class="empty" style="grid-column:1/-1">No items found</div>'; return; }
       filt.forEach(item => {
@@ -553,7 +591,7 @@ function renderS2(page) {
         card.onclick = () => {
           if (item.status === 'ot') return;
           if (inCart) S.cart = S.cart.filter(c => c.invId !== item.id);
-          else S.cart.push({ id: Date.now(), invId: item.id, name: item.name, qty: 1, type: 'stocked', desc: '', link: '', routeTo: '', stockStatus: '', pictureFile: null });
+          else S.cart.push({ id: Date.now(), invId: item.id, name: item.name, qty: 1, type: 'stocked', desc: '', link: '', routeTo: '', stockStatus: '', pictureFiles: [] });
           re();
         };
         g.appendChild(card);
@@ -567,7 +605,7 @@ function renderS2(page) {
     const b = mk('button', 'ftab' + (S.filter === k ? ' on' : '')); b.textContent = l;
     b.onclick = () => { S.filter = k; re(); }; ft.appendChild(b);
   });
-  const cntEl = mk('span', 'icnt'); cntEl.textContent = filtered.length + ' items'; ft.appendChild(cntEl);
+  const cntEl = mk('span', 'icnt'); cntEl.id = 'inv-count'; cntEl.textContent = filtered.length + ' items'; ft.appendChild(cntEl);
   ib.appendChild(ft);
 
   if (!filtered.length) {
@@ -582,7 +620,7 @@ function renderS2(page) {
       card.onclick = () => {
         if (item.status === 'ot') return;
         if (inCart) S.cart = S.cart.filter(c => c.invId !== item.id);
-        else S.cart.push({ id: Date.now(), invId: item.id, name: item.name, qty: 1, type: 'stocked', desc: '', link: '', routeTo: '', stockStatus: '', pictureFile: null });
+        else S.cart.push({ id: Date.now(), invId: item.id, name: item.name, qty: 1, type: 'stocked', desc: '', link: '', routeTo: '', stockStatus: '', pictureFiles: [] });
         re();
       };
       grid.appendChild(card);
@@ -642,7 +680,7 @@ function renderS2(page) {
       const stockRow = mk('div', 'fld');
       stockRow.innerHTML = '<label class="lbl" style="font-size:11px">Stock status <span class="req">*</span></label>';
       const stockPills = mk('div', 'pills');
-      ['Taking from WH', 'Needs Ordered'].forEach(opt => {
+      ['Taking from WH', 'Needs Ordered', 'Taken from Vehicle'].forEach(opt => {
         const uid2 = 'st-' + item.id + '-' + opt.replace(/\s+/g, '-');
         const d2 = mk('div', 'pill');
         const inp2 = document.createElement('input'); inp2.type = 'radio'; inp2.name = 'st-' + item.id;
@@ -665,23 +703,45 @@ function renderS2(page) {
 
       // Image upload button
       const picRow = mk('div', 'ci-extra-row');
+      const picRow2 = mk('div', '');
+      picRow2.style.cssText = 'display:flex;flex-direction:column;gap:4px;width:100%';
       const picLabel = mk('label', 'file-btn');
-      picLabel.innerHTML = '📷 Add image';
+      picLabel.innerHTML = '📷 Add images';
       const picInput = document.createElement('input');
       picInput.type = 'file'; picInput.accept = 'image/*,application/pdf';
+      picInput.multiple = true;
       picInput.style.display = 'none';
       picInput.onchange = e => {
-        const file = e.target.files[0];
-        if (file) S.cart = S.cart.map(c => c.id === item.id ? { ...c, pictureFile: file } : c);
+        const newFiles = Array.from(e.target.files);
+        if (newFiles.length) {
+          S.cart = S.cart.map(c => c.id === item.id
+            ? { ...c, pictureFiles: [...(c.pictureFiles || []), ...newFiles] }
+            : c
+          );
+        }
         re();
       };
       picLabel.appendChild(picInput);
-      picRow.appendChild(picLabel);
-      if (item.pictureFile) {
-        const pv = mk('div', '', '✓ ' + item.pictureFile.name);
-        pv.style.cssText = 'font-size:11px;color:var(--grn);margin-top:2px';
-        picRow.appendChild(pv);
+      picRow2.appendChild(picLabel);
+      if (item.pictureFiles && item.pictureFiles.length) {
+        item.pictureFiles.forEach((f, fi) => {
+          const pv = mk('div', '');
+          pv.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:11px;color:var(--grn)';
+          pv.innerHTML = '✓ ' + f.name;
+          const rm = mk('button', '');
+          rm.textContent = '×'; rm.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;line-height:1';
+          rm.onclick = () => {
+            S.cart = S.cart.map(c => c.id === item.id
+              ? { ...c, pictureFiles: c.pictureFiles.filter((_, i) => i !== fi) }
+              : c
+            );
+            re();
+          };
+          pv.appendChild(rm);
+          picRow2.appendChild(pv);
+        });
       }
+      picRow.appendChild(picRow2);
       ex.appendChild(descInp); ex.appendChild(linkInp); ex.appendChild(picRow);
       ci.appendChild(ex); cl.appendChild(ci);
     });
@@ -795,7 +855,7 @@ function updQty(id, qty) {
 
 function addSpecial() {
   if (!S.sName.trim()) { S.err = 'Please enter an item name.'; re(); return; }
-  S.cart.push({ id: Date.now(), invId: null, name: S.sName.trim(), qty: S.sQty, type: 'special', desc: S.sDesc, link: S.sLink, routeTo: '', stockStatus: '', pictureFile: null });
+  S.cart.push({ id: Date.now(), invId: null, name: S.sName.trim(), qty: S.sQty, type: 'special', desc: S.sDesc, link: S.sLink, routeTo: '', stockStatus: '', pictureFiles: [] });
   S.sName = ''; S.sDesc = ''; S.sQty = 1; S.sLink = ''; S.showSpl = false; S.err = ''; re();
 }
 
@@ -835,7 +895,7 @@ async function doSubmit() {
       link:    c.link   || '',
       routeTo:     c.routeTo     || '',
       stockStatus:  c.stockStatus  || '',
-      pictureFile:  c.pictureFile  || null,
+      pictureFiles: c.pictureFiles || [],
     }));
     console.log('Submitting payload:', payload);
     const id = await submitRequest(S.f, payload);
@@ -851,20 +911,40 @@ async function doSubmit() {
 // ── INIT ───────────────────────────────────────────────────────────
 re(); // show loading immediately
 
+// Fetch ALL items from a board using cursor pagination (monday caps at 500/page)
+async function fetchAllItems(boardId) {
+  const all = [];
+  let cursor = null;
+  let page = 0;
+  do {
+    const q = cursor
+      ? `query($c:String!){next_items_page(limit:500,cursor:$c){cursor items{id name column_values{id text}}}}`
+      : `query($b:ID!){boards(ids:[$b]){items_page(limit:500){cursor items{id name column_values{id text}}}}}`;
+    const vars = cursor ? { c: cursor } : { b: boardId };
+    const d = await gql(q, vars);
+    const pageData = cursor ? d.next_items_page : d.boards[0].items_page;
+    all.push(...pageData.items);
+    cursor = pageData.cursor;
+    page++;
+  } while (cursor && page < 20); // safety cap: 10,000 items
+  console.log(`Loaded ${all.length} items from board ${boardId} (${page} pages)`);
+  return all;
+}
+
 (async () => {
   try {
-    const [invRes, orgRes, colRes, locRes] = await Promise.all([
-      gql(`query($b:ID!){boards(ids:[$b]){items_page(limit:500){items{id name column_values{id text}}}}}`, { b: C.inv }),
-      gql(`query($b:ID!){boards(ids:[$b]){items_page(limit:200){items{name}}}}`, { b: C.org }),
+    const [invItems, orgRes, colRes, locItems] = await Promise.all([
+      fetchAllItems(C.inv),
+      gql(`query($b:ID!){boards(ids:[$b]){items_page(limit:500){items{name}}}}`, { b: C.org }),
       gql(`query($b:ID!){boards(ids:[$b]){columns{id title settings_str}}}`, { b: C.prc }),
-      gql(`query($b:ID!){boards(ids:[$b]){items_page(limit:500){items{name column_values{id text}}}}}`, { b: C.loc }),
+      fetchAllItems(C.loc),
     ]);
 
-    S.inv     = invRes.boards[0].items_page.items.map(item => {
+    S.inv = invItems.map(item => {
       const qc  = item.column_values.find(c => c.id === C.qtyCol);
       const qty = qc ? parseFloat(qc.text) || 0 : 0;
       return { id: item.id, name: item.name, qty, status: qty <= 0 ? 'ot' : qty <= 3 ? 'lw' : 'av' };
-    });
+    }).sort((a, b) => a.name.localeCompare(b.name));
 
     S.emps = orgRes.boards[0].items_page.items.map(i => i.name).sort();
 
@@ -882,7 +962,7 @@ re(); // show loading immediately
 
     S.offices = parseLabels(C.officeCol);
     S.props   = parseLabels(C.propCol);
-    S.locMap  = locRes.boards[0].items_page.items.reduce((map, item) => {
+    S.locMap  = locItems.reduce((map, item) => {
       const prop = item.name;
       const addrCol = item.column_values.find(c => c.id === C.locAddrCol);
       const addr = addrCol ? addrCol.text : '';
